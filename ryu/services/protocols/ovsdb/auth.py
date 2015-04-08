@@ -21,19 +21,23 @@ _authorized_certificates = {}
 
 def is_authorized(digest):
     return digest in _authorized_certificates
-        digest = hashlib.sha256(cert).hexdigest()
-        return digest in _authorized_certificates
-
-    return False
+    #     digest = hashlib.sha256(cert).hexdigest()
+    #     return digest in _authorized_certificates
+    #
+    # return False
 
 
 def add_authorized_client(address, cert):
     key = RSA.importKey(cert)
     der = key.publickey().exportKey('DER')
-    digest = hashlib.sha256(der).hexdigest()
+    digest = hashlib.sha256(der).hexdigest().upper()
     _authorized_certificates[digest] = (address, cert)
     return 'Added certificate to allowed clients'
 
+def add_authorized_client_der(address, cert):
+    digest = hashlib.sha256(cert).hexdigest().upper()
+    _authorized_certificates[digest] = (address, cert)
+    return 'Added certificate to allowed clients'
 
 def convert_pem_to_der(cert):
     key = RSA.importKey(open('privatekey.pem').read())
@@ -41,5 +45,5 @@ def convert_pem_to_der(cert):
 
 
 def add_test_cert():
-    cert = open('/etc/openvswitch/sc-privkey.pem').read()
-    add_authorized_client('127.0.0.1', cert)
+    cert = open('/home/chansen/ca02/easy-rsa-master/easyrsa3/pki/issued/client-02.der').read()
+    add_authorized_client_der('127.0.0.1', cert)

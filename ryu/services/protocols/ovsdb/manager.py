@@ -91,12 +91,19 @@ class OVSDB(app_manager.RyuApp):
                 raise RuntimeError('Key and Cert must be specified if SSL is '
                                    'required')
 
-            if self.CONF.ssl_fingerprint_verify:
+            if self.CONF.ovsdb.ssl_fingerprint_verify:
                 if hub.HUB_TYPE != 'eventlet':
                     raise RuntimeError('Fingerprint Verification only '
                                        'supported with the ryu hub')
 
                 from eventlet.green.OpenSSL import SSL
+
+                class Connection(SSL.Connection):
+                    def accept(self):
+                        sock, client_address = SSL.Connection.accept(self)
+                        sock.do_handshake()
+                        return sock, client_address
+
                 context = SSL.Context(SSL.SSLv23_METHOD)
                 context.use_certificate_file(crt)
                 context.use_privatekey_file(key)
@@ -113,7 +120,7 @@ class OVSDB(app_manager.RyuApp):
 
                 context.set_verify(opts, verify)
 
-                self._server = SSL.Connection(context, server)
+                self._server = Connection(context, server)
                 self._server.set_accept_state()
 
             else:
@@ -127,6 +134,7 @@ class OVSDB(app_manager.RyuApp):
                                                cert_reqs=ssl.CERT_REQUIRED,
                                                keyfile=key,
                                                certfile=crt,
+                                               ca_certs=ca_certs,
                                                server_side=True)
         else:
             self._server = server
