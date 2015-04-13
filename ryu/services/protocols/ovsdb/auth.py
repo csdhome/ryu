@@ -15,6 +15,7 @@
 
 from Crypto.PublicKey import RSA
 import hashlib
+from base64 import b64decode
 
 _authorized_certificates = {}
 
@@ -34,16 +35,32 @@ def add_authorized_client(address, cert):
     _authorized_certificates[digest] = (address, cert)
     return 'Added certificate to allowed clients'
 
+
+def add_authorized_client_test(address, cert):
+    keyder = b64decode(cert)
+    key = RSA.importKey(keyder)
+    der = key.publickey().exportKey('DER')
+    digest = hashlib.sha256(der).hexdigest().upper()
+    _authorized_certificates[digest] = (address, cert)
+    return 'Added certificate to allowed clients'
+
+
 def add_authorized_client_der(address, cert):
     digest = hashlib.sha256(cert).hexdigest().upper()
     _authorized_certificates[digest] = (address, cert)
     return 'Added certificate to allowed clients'
+
 
 def convert_pem_to_der(cert):
     key = RSA.importKey(open('privatekey.pem').read())
     der = key.publickey().exportKey('DER')
 
 
+def convert_cert(cert_file_path):
+    rsa = RSA.importKey(open(cert_file_path).read())
+    return rsa.publickey().exportKey('DER')
+
+
 def add_test_cert():
-    cert = open('/home/chansen/ca02/easy-rsa-master/easyrsa3/pki/issued/client-02.der').read()
+    cert = open('/home/chansen/ca02/easy-rsa-master/easyrsa3/pki/issued/ovsdb.der').read()
     add_authorized_client_der('127.0.0.1', cert)

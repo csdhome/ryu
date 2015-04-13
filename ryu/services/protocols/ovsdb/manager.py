@@ -108,6 +108,9 @@ class OVSDB(app_manager.RyuApp):
                 context.use_certificate_file(crt)
                 context.use_privatekey_file(key)
 
+                ca_certs = self.CONF.ovsdb.mngr_ca_certs or self.CONF.ca_certs
+                context.load_verify_locations(ca_certs)
+
                 def verify(conn, cert, errnum, depth, ok):
                     digest = cert.digest('sha256')
                     digest = digest.replace(':', '')
@@ -119,6 +122,8 @@ class OVSDB(app_manager.RyuApp):
                         SSL.VERIFY_CLIENT_ONCE)
 
                 context.set_verify(opts, verify)
+                context.set_verify_depth(0)
+                context.set_options(SSL.OP_NO_SSLv2 | SSL.OP_NO_SSLv3)
 
                 self._server = Connection(context, server)
                 self._server.set_accept_state()

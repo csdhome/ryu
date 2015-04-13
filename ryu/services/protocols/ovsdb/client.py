@@ -43,6 +43,7 @@ from ryu.lib import hub
 from ryu.services.protocols.ovsdb import event
 from ryu.services.protocols.ovsdb import model
 
+import OpenSSL
 
 now = timeval.msec
 
@@ -72,6 +73,7 @@ def discover_schemas(connection):
     #                is supported.
     # TODO(jkoelker) support arbitrary schemas
     req = jsonrpc.Message.create_request('list_dbs', [])
+
     error, reply = connection.transact_block(req)
 
     if error or reply.error:
