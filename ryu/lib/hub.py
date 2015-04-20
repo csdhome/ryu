@@ -107,11 +107,20 @@ if HUB_TYPE == 'eventlet':
             else:
                 self.server = eventlet.listen(listen_info)
             if ssl_args:
-                def wrap_and_handle(sock, addr):
-                    ssl_args.setdefault('server_side', True)
-                    handle(ssl.wrap_socket(sock, **ssl_args), addr)
+                if ssl_args['fingerprint_verify']:
+                    def wrap_and_handle(sock, addr):
+                        from ryu.services.protocols.ovsdb import openssl
+                        handle(openssl.wrap_socket(ssl_args['certfile'],
+                                                   ssl_args['keyfile'],
+                                                   sock), addr)
 
-                self.handle = wrap_and_handle
+                    self.handle = wrap_and_handle
+                else:
+                    def wrap_and_handle(sock, addr):
+                        ssl_args.setdefault('server_side', True)
+                        handle(ssl.wrap_socket(sock, **ssl_args), addr)
+
+                    self.handle = wrap_and_handle
             else:
                 self.handle = handle
 

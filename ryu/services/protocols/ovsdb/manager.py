@@ -20,6 +20,7 @@ from ryu.services.protocols.ovsdb import client
 from ryu.services.protocols.ovsdb import event
 from ryu.controller import handler
 import auth
+import openssl
 import ssl
 
 
@@ -91,43 +92,13 @@ class OVSDB(app_manager.RyuApp):
                 raise RuntimeError('Key and Cert must be specified if SSL is '
                                    'required')
 
-            if self.CONF.ovsdb.ssl_fingerprint_verify:
+            if self.CONF.ovsdb.ssl_fingerprint_verify or \
+                    self.CONF.ssl_fingerprint_verify:
                 if hub.HUB_TYPE != 'eventlet':
                     raise RuntimeError('Fingerprint Verification only '
                                        'supported with the ryu hub')
 
-                from eventlet.green.OpenSSL import SSL
-
-                class Connection(SSL.Connection):
-                    def accept(self):
-                        sock, client_address = SSL.Connection.accept(self)
-                        sock.do_handshake()
-                        return sock, client_address
-
-                context = SSL.Context(SSL.SSLv23_METHOD)
-                context.use_certificate_file(crt)
-                context.use_privatekey_file(key)
-
-                ca_certs = self.CONF.ovsdb.mngr_ca_certs or self.CONF.ca_certs
-                context.load_verify_locations(ca_certs)
-
-                def verify(conn, cert, errnum, depth, ok):
-                    digest = cert.digest('sha256')
-                    digest = digest.replace(':', '')
-                    digest = digest.replace(' ', '')
-                    digest = digest.upper()
-                    return auth.is_authorized(digest)
-
-                opts = (SSL.VERIFY_PEER | SSL.VERIFY_FAIL_IF_NO_PEER_CERT |
-                        SSL.VERIFY_CLIENT_ONCE)
-
-                context.set_verify(opts, verify)
-                context.set_verify_depth(0)
-                context.set_options(SSL.OP_NO_SSLv2 | SSL.OP_NO_SSLv3)
-
-                self._server = Connection(context, server)
-                self._server.set_accept_state()
-
+                self._server = openssl.wrap_socket(crt, key, server)
             else:
                 ca_certs = self.CONF.ovsdb.mngr_ca_certs or self.CONF.ca_certs
 

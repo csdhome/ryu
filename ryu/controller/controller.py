@@ -56,7 +56,9 @@ CONF.register_cli_opts([
                help='openflow ssl listen port'),
     cfg.StrOpt('ctl-privkey', default=None, help='controller private key'),
     cfg.StrOpt('ctl-cert', default=None, help='controller certificate'),
-    cfg.StrOpt('ca-certs', default=None, help='CA certificates')
+    cfg.StrOpt('ca-certs', default=None, help='CA certificates'),
+    cfg.BoolOpt('ssl-fingerprint-verify', default=False,
+                help='SSL Fingerprint verify only')
 ])
 
 
@@ -71,6 +73,7 @@ class OpenFlowController(object):
 
     def server_loop(self):
         if CONF.ctl_privkey is not None and CONF.ctl_cert is not None:
+            fingerprint_verify = CONF.ssl_fingerprint_verify
             if CONF.ca_certs is not None:
                 server = StreamServer((CONF.ofp_listen_host,
                                        CONF.ofp_ssl_listen_port),
@@ -79,14 +82,16 @@ class OpenFlowController(object):
                                       certfile=CONF.ctl_cert,
                                       cert_reqs=ssl.CERT_REQUIRED,
                                       ca_certs=CONF.ca_certs,
-                                      ssl_version=ssl.PROTOCOL_TLSv1)
+                                      ssl_version=ssl.PROTOCOL_TLSv1,
+                                      fingerprint_verify=fingerprint_verify)
             else:
                 server = StreamServer((CONF.ofp_listen_host,
                                        CONF.ofp_ssl_listen_port),
                                       datapath_connection_factory,
                                       keyfile=CONF.ctl_privkey,
                                       certfile=CONF.ctl_cert,
-                                      ssl_version=ssl.PROTOCOL_TLSv1)
+                                      ssl_version=ssl.PROTOCOL_TLSv1,
+                                      fingerprint_verify=fingerprint_verify)
         else:
             server = StreamServer((CONF.ofp_listen_host,
                                    CONF.ofp_tcp_listen_port),
